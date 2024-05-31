@@ -6,7 +6,7 @@ authors = ["sitarapersad <sitara.persad@columbia.edu>"]
 readme = "README.md"
 
 [tool.poetry.dependencies]
-python = "^3.12"
+python = "^3.10"
 pomegranate = "^1.0.4"
 jupyter = "^1.0.0"
 pandas = "^2.2.2"
