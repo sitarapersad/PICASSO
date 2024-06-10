@@ -24,6 +24,8 @@ def encode_cnvs_as_ternary(data):
     if isinstance(data, np.ndarray):
         data = pd.DataFrame(data)
 
+    data = data.astype(int)
+
     # Initialize a list to hold the binary encoded columns
     binary_encoded_cols = []
     column_names = []
@@ -61,6 +63,7 @@ def encode_cnvs_as_ternary(data):
 
     # Combine all binary encoded columns into a DataFrame
     binary_encoded_df = pd.DataFrame(np.column_stack(binary_encoded_cols), columns=column_names)
+    binary_encoded_df.index = data.index
 
     return binary_encoded_df
 
