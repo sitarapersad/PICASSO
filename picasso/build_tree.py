@@ -93,10 +93,17 @@ class Picasso:
             raise NotImplementedError
 
         # Split the clone into two children
-        responsibilities = model2.predict_proba(X)
+        responsibilities = model2.predict_proba(X).numpy()
         assignments = np.argmax(responsibilities, axis=1)
-        samples_in_clone_0 = samples[assignments == 0]
-        samples_in_clone_1 = samples[assignments == 1]
+
+        try:
+            samples_in_clone_0 = samples[assignments == 0]
+            samples_in_clone_1 = samples[assignments == 1]
+
+        except Exception as e:
+            print(set(assignments))
+            print(assignments==0)
+            raise e
 
         if len(samples_in_clone_0) < self.min_clone_size or len(samples_in_clone_1) < self.min_clone_size:
             terminate = True
