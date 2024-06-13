@@ -105,12 +105,14 @@ class Picasso:
             print(assignments==0)
             raise e
 
-        if len(samples_in_clone_0) < self.min_clone_size or len(samples_in_clone_1) < self.min_clone_size:
-            terminate = True
-
+        # If the algorithm is forced to split, try to split the clone regardless of the BIC score
         if force_split and terminate:
             log.debug(f'\t -Forced split of clone {clone}.')
             terminate = False
+
+        # No matter what, if a clone is too small, terminate it
+        if len(samples_in_clone_0) < self.min_clone_size or len(samples_in_clone_1) < self.min_clone_size:
+            terminate = True
 
         if terminate:
             self.terminal_clones[f'{clone}-STOP'] = samples
@@ -135,6 +137,8 @@ class Picasso:
         """
         new_clones = {}
         for clone in tqdm(self.clones):
+            # Get the size of the clone
+
             updated_clones = self.split_clone(clone, force_split)
             for key, value in updated_clones.items():
                 new_clones[key] = value
@@ -144,6 +148,8 @@ class Picasso:
         """
         Fit the PICASSO model by iteratively splitting leaf nodes until the algorithm terminates.
         Wrapper function for the step() method then performs logic to determine whether algorithm has terminated.
+        If a minimum depth is specified, the algorithm will continue until the minimum depth is reached forcing splits
+        UNLESS a clone is of insufficient size as determined by the min_clone_size parameter.
         :return: None.
         :modifies: self.clones, self.terminal_clones, self.depth
         """
