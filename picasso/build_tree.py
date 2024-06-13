@@ -153,7 +153,8 @@ class Picasso:
             self.depth += 1
             log.info(
                 f'Tree Depth {self.depth}: {len(self.clones)} clone(s), {len(self.terminal_clones)} terminal clone(s).')
-            self.step()
+            self.step(force_split=self.depth>=self.min_depth)
+
             # Determine whether all leaf nodes have been terminated or if the algorithm has reached the maximum depth
             if self.depth < self.min_depth:
                 continue
