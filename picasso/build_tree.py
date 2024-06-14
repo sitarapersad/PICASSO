@@ -20,7 +20,14 @@ if not log.hasHandlers():
 log.propagate = False
 
 class Picasso:
-    def __init__(self, character_matrix, min_depth=None, max_depth=None, min_clone_size=5, terminate_by='probability'):
+    def __init__(self,
+                 character_matrix,
+                 min_depth=None,
+                 max_depth=None,
+                 min_clone_size=5,
+                 terminate_by='probability',
+                 assignment_confidence_threshold=0.75,
+                 assignment_confidence_proportion=0.8):
         """
         Initialize the PICASSO model.
         :param character_matrix: (pd.DataFrame) An integer matrix where rows are samples and columns are features.
@@ -28,7 +35,18 @@ class Picasso:
         :param max_depth: (int) The maximum depth of the phylogeny.
         :param min_clone_size: (int) The minimum number of samples in a clone.
         :param terminate_by: (str) The criterion to use to terminate the algorithm. Either 'probability' or 'BIC'.
+        :param assignment_confidence_threshold: (float) The minimum confidence threshold for clone assignments if
+                                                terminate_by is 'probability'. Must be between 0 and 1.
+        :param assignment_confidence_proportion: (float) The minimum proportion of samples with confident assignments
+                                                 for a clone to be split if terminate_by is 'probability'. Must be
+                                                 between 0 and 1.
         """
+        assert isinstance(assignment_confidence_threshold, float), 'assignment_confidence_threshold must be a float'
+        assert isinstance(assignment_confidence_proportion, float), 'assignment_confidence_proportion must be a float'
+        assert 0 <= assignment_confidence_threshold <= 1, 'assignment_confidence_threshold must be between 0 and 1'
+        assert 0 <= assignment_confidence_proportion <= 1, 'assignment_confidence_proportion must be between 0 and 1'
+        self.assignment_confidence_threshold = assignment_confidence_threshold
+        self.assignment_confidence_proportion = assignment_confidence_proportion
 
         assert isinstance(character_matrix, pd.DataFrame), 'character_matrix must be a pandas DataFrame'
         # Convert character matrix to integer values
@@ -63,7 +81,7 @@ class Picasso:
         """
         new_clones = {}
         log.debug(f'\t Processing Clone {clone} of size {len(self.clones[clone])}.')
-        if clone in self.terminal_clones and not force_split:
+        if clone in self.terminal_clones:
             new_clones[clone] = self.clones[clone]
             return new_clones
 
@@ -83,23 +101,27 @@ class Picasso:
         X = copy.deepcopy(character_matrix.values - character_matrix.min().min())
         # Fit a Categorical Mixture Model to the character matrix
         model2, bic2 = self._select_model(X, 2)
+        # Split the clone into two children
+        responsibilities = model2.predict_proba(X).numpy()
+        assignments = np.argmax(responsibilities, axis=1)
 
         terminate = False
         if self.terminate_by == 'BIC':
             model1, bic1 = self._select_model(X, 1)
             if bic1 < bic2:
                 terminate = True
-        if self.terminate_by == 'PROBABILITY':
-            raise NotImplementedError
 
-        # Split the clone into two children
-        responsibilities = model2.predict_proba(X).numpy()
-        assignments = np.argmax(responsibilities, axis=1)
+        if self.terminate_by == 'PROBABILITY':
+            # Determine confident assignments
+            confident_assignments = np.max(responsibilities, axis=1) >= self.assignment_confidence_threshold
+            confident_proportion = np.sum(confident_assignments) / character_matrix.shape[0]
+            if confident_proportion < self.assignment_confidence_proportion:
+                terminate = True
+
 
         try:
             samples_in_clone_0 = samples[assignments == 0]
             samples_in_clone_1 = samples[assignments == 1]
-
         except Exception as e:
             print(set(assignments))
             print(assignments==0)
@@ -138,7 +160,6 @@ class Picasso:
         new_clones = {}
         for clone in tqdm(self.clones):
             # Get the size of the clone
-
             updated_clones = self.split_clone(clone, force_split)
             for key, value in updated_clones.items():
                 new_clones[key] = value
@@ -158,8 +179,9 @@ class Picasso:
         while not algorithm_finished:
             self.depth += 1
             log.info(
-                f'Tree Depth {self.depth}: {len(self.clones)} clone(s), {len(self.terminal_clones)} terminal clone(s).')
-            self.step(force_split=self.depth>=self.min_depth)
+                f'Tree Depth {self.depth}: {len(self.clones)} clone(s), {len(self.terminal_clones)} terminal clone(s). '
+                f'Force Split: {self.depth <= self.min_depth}')
+            self.step(force_split=self.depth<=self.min_depth)
 
             # Determine whether all leaf nodes have been terminated or if the algorithm has reached the maximum depth
             if self.depth < self.min_depth:
