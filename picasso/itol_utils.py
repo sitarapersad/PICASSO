@@ -58,7 +58,6 @@ def dataframe_to_itol_colorstrip(series, cmap, dataset_label):
 def dataframe_to_itol_heatmap(df, dataset_label="CNVs", color_min='#3f4c8a', color_max='#b40426'):
     """
     Convert a pandas DataFrame into an iTOL heatmap annotation file.
-
     :param df: Pandas DataFrame with rows as leaf labels and columns as data points.
     :param dataset_label: Label for the dataset.
     :param color_min: Color for the minimum value (as a hex string).
