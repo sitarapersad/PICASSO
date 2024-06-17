@@ -55,25 +55,28 @@ def dataframe_to_itol_colorstrip(series, cmap, dataset_label):
     return text
 
 
-def dataframe_to_itol_heatmap(df):
+def dataframe_to_itol_heatmap(df, dataset_label="CNVs", color_min='#3f4c8a', color_max='#b40426'):
     """
     Convert a pandas DataFrame into an iTOL heatmap annotation file.
 
     :param df: Pandas DataFrame with rows as leaf labels and columns as data points.
+    :param dataset_label: Label for the dataset.
+    :param color_min: Color for the minimum value (as a hex string).
+    :param color_max: Color for the maximum value (as a hex string).
     :param output_file: Path to the output file.
     """
     file = io.StringIO()
     # Write the header for the iTOL heatmap dataset
     file.write("DATASET_HEATMAP\n")
     file.write("SEPARATOR SPACE\n")
-    file.write("DATASET_LABEL CNVs\n")
+    file.write(f"DATASET_LABEL {dataset_label}\n")
     file.write("FIELD_LABELS " + " ".join(df.columns) + "\n")
     file.write("COLOR #ff0000\n")  # Default color, not used in coolwarm palette
 
     # Write color gradients for coolwarm
-    file.write("COLOR_MIN #3f4c8a\n")  # Cool color
+    file.write(f"COLOR_MIN {color_min}\n")  # Cool color
     file.write("COLOR_MID #f5f5f5\n")  # Midpoint color
-    file.write("COLOR_MAX #b40426\n")  # Warm color
+    file.write(f"COLOR_MAX {color_max}\n")  # Warm color
 
     # Data section
     file.write("DATA\n")

@@ -64,6 +64,9 @@ class Picasso:
         self.character_matrix = character_matrix
         self.min_depth = min_depth if min_depth is not None else 0
         self.max_depth = max_depth if max_depth is not None else float('inf')
+        if min_clone_size is not None:
+            assert isinstance(min_clone_size, int), 'min_clone_size must be an integer'
+            assert min_clone_size > 0, 'min_clone_size must be greater than 0'
         self.min_clone_size = min_clone_size if min_clone_size is not None else 1
         self.terminate_by = terminate_by
 
