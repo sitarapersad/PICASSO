@@ -7,10 +7,17 @@ import matplotlib.pyplot as plt
 class CloneTree:
     def __init__(self, phylogeny, clone_assignments, character_matrix, clone_aggregation='mode', metadata=None):
         """
+        Initialize a CloneTree object. This object represents a phylogenetic tree with clones as leaves and allows for
+        the aggregation of character matrices by clone.
 
-        :param phylogeny: (
-        :param clone_assigments:
-        :param character_matrix:
+        :param phylogeny: (ete3.Tree) The phylogenetic tree with clones as leaves.
+        :param clone_assigments: (pandas.DataFrame) A DataFrame with the clone assignments for each sample. The index
+        should be the sample names and there should be a column named 'clone_id' with the clone assignments.
+        :param character_matrix: (pandas.DataFrame) A DataFrame with the character matrix. Each row should be a sample
+        and each column should be a feature representing some integer genomic alteration.
+        :param clone_aggregation: (str) The method to use for aggregating the character matrix by clone. Either 'mode'
+        or 'mean'.
+        :param metadata: (pandas.DataFrame) Optional metadata for the samples.
         """
         assert 'clone_id' in clone_assignments.columns, 'The clone assignments must have a column named "clone_id".'
         assert isinstance(phylogeny, ete3.Tree)
