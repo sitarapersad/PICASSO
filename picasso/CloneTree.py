@@ -126,7 +126,7 @@ class CloneTree:
         """
         raise NotImplementedError
 
-    def plot_alterations(self, metadata=None, cmap='coolwarm', show=True, save_as=None):
+    def plot_alterations(self, metadata=None, cmap='coolwarm', show=True, save_as=None, center=None:
         """
         Plot the alterations in a heatmap, coloured by clone assignment and other potential metadata. :param
         color_metadata: (pandas.DataFrame) The metadata to colour the heatmap by. This should have the same index as
@@ -147,9 +147,12 @@ class CloneTree:
         # Plot a clustered heatmap, so that we can display the clone assignments as a colour bar
         if metadata is not None:
             row_colors = row_colors.join(metadata)
-
-        sns.clustermap(df.drop(columns='clone_id'), row_colors=row_colors, col_cluster=False, row_cluster=False,
-                       cmap=cmap, figsize=(10, 10))
+        if center is not None:
+            sns.clustermap(df.drop(columns='clone_id'), row_colors=row_colors, col_cluster=False, row_cluster=False,
+                           cmap=cmap, figsize=(10, 10), center=center)
+        else:
+            sns.clustermap(df.drop(columns='clone_id'), row_colors=row_colors, col_cluster=False, row_cluster=False,
+                           cmap=cmap, figsize=(10, 10))
         if save_as:
             plt.savefig(save_as, dpi=300)
         if show:
