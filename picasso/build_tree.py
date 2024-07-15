@@ -294,9 +294,10 @@ class Picasso:
         # For performing the Chi-squared test, flatten the tables appropriately
         contingency_table_clone1 = expected_frequencies[:, :, 0].flatten()
         contingency_table_clone2 = expected_frequencies[:, :, 1].flatten()
+        contingency_table = np.vstack([contingency_table_clone1, contingency_table_clone2])
 
         # Perform Chi-squared test
-        chi2, p= chisquare(contingency_table_clone1, contingency_table_clone2)
+        chi2, p, dof, expected = chi2_contingency(contingency_table)
 
         # Decision based on the p-value
         log.debug('Chi-squared p-value:', p)
