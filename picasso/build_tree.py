@@ -270,7 +270,7 @@ class Picasso:
 
     @staticmethod
     def _perform_chi_squared(X, responsibilities, threshold = 0.05):
-        from scipy.stats import chi2_contingency
+        from scipy.stats import chi2_contingency, chisquare
         # States are assumed to be 0, 1, 2, ... (already shifted to be positive)
         states = np.unique(X)
 
@@ -294,10 +294,9 @@ class Picasso:
         # For performing the Chi-squared test, flatten the tables appropriately
         contingency_table_clone1 = expected_frequencies[:, :, 0].flatten()
         contingency_table_clone2 = expected_frequencies[:, :, 1].flatten()
-        contingency_table = np.vstack([contingency_table_clone1, contingency_table_clone2])
 
         # Perform Chi-squared test
-        chi2, p, dof, expected = chi2_contingency(contingency_table)
+        chi2, p= chisquare(contingency_table_clone1, contingency_table_clone2)
 
         # Decision based on the p-value
         split_decision = p < threshold
