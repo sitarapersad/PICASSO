@@ -299,7 +299,7 @@ class Picasso:
         chi2, p= chisquare(contingency_table_clone1, contingency_table_clone2)
 
         # Decision based on the p-value
-        print('Chi-squared p-value:', p)
+        log.debug('Chi-squared p-value:', p)
         split_decision = p < threshold
         return split_decision
 
