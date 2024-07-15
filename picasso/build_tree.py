@@ -27,7 +27,8 @@ class Picasso:
                  min_clone_size=5,
                  terminate_by='probability',
                  assignment_confidence_threshold=0.75,
-                 assignment_confidence_proportion=0.8):
+                 assignment_confidence_proportion=0.8,
+                 chi_squared_p_value=0.05):
         """
         Initialize the PICASSO model.
         :param character_matrix: (pd.DataFrame) An integer matrix where rows are samples and columns are features.
@@ -47,7 +48,7 @@ class Picasso:
         assert 0 <= assignment_confidence_proportion <= 1, 'assignment_confidence_proportion must be between 0 and 1'
         self.assignment_confidence_threshold = assignment_confidence_threshold
         self.assignment_confidence_proportion = assignment_confidence_proportion
-
+        self.chi_squared_p_value = chi_squared_p_value
         assert isinstance(character_matrix, pd.DataFrame), 'character_matrix must be a pandas DataFrame'
         # Convert character matrix to integer values
         try:
@@ -59,7 +60,7 @@ class Picasso:
         assert isinstance(max_depth, int) or max_depth is None, 'max_depth must be an integer or None'
         assert isinstance(min_clone_size, int) or min_clone_size is None, 'min_clone_size must be an integer or None'
         terminate_by = terminate_by.upper()
-        assert terminate_by in ['PROBABILITY', 'BIC'], 'terminate_by must be either "probability" or "BIC"'
+        assert terminate_by in ['PROBABILITY', 'BIC', 'CHI_SQUARED'], 'terminate_by must be either "probability" or "BIC"'
 
         self.character_matrix = character_matrix
         self.min_depth = min_depth if min_depth is not None else 0
@@ -121,6 +122,8 @@ class Picasso:
             if confident_proportion < self.assignment_confidence_proportion:
                 terminate = True
 
+        if self.terminate_by == 'CHI_SQUARED':
+            terminate = self._perform_chi_squared(X, responsibilities, self.chi_squared_p_value)
 
         try:
             samples_in_clone_0 = samples[assignments == 0]
@@ -264,6 +267,41 @@ class Picasso:
         bic_score = -2 * logprob + n_params * np.log(X.shape[0])
 
         return bic_score
+
+    @staticmethod
+    def _perform_chi_squared(X, responsibilities, threshold = 0.05):
+        from scipy.stats import chi2_contingency
+        # States are assumed to be 0, 1, 2, ... (already shifted to be positive)
+        states = np.unique(X)
+
+        # Number of regions
+        num_regions = X.shape[1]
+
+        # Initialize the expected frequencies table
+        expected_frequencies = np.zeros((len(states), num_regions, 2))
+
+        # Calculate weighted frequencies for each (state, region) pair in each clone using numpy broadcasting
+        for clone in range(responsibilities.shape[1]):
+            for state in states:
+                # Get the cells with the current state
+                state_cells = X == state
+                # Get the expected frequency for the current state in the current clone
+                expected_frequencies[state, :, clone] = (state_cells.T @ responsibilities[:, clone])
+
+        # Ensure that there are no expected frequencies of zero
+        expected_frequencies[expected_frequencies == 0] = 1e-5
+
+        # For performing the Chi-squared test, flatten the tables appropriately
+        contingency_table_clone1 = expected_frequencies[:, :, 0].flatten()
+        contingency_table_clone2 = expected_frequencies[:, :, 1].flatten()
+        contingency_table = np.vstack([contingency_table_clone1, contingency_table_clone2])
+
+        # Perform Chi-squared test
+        chi2, p, dof, expected = chi2_contingency(contingency_table)
+
+        # Decision based on the p-value
+        split_decision = p < threshold
+        return split_decision
 
     @staticmethod
     def _initialize_clusters(array, num_partitions):
