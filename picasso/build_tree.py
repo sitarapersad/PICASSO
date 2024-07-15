@@ -123,7 +123,7 @@ class Picasso:
                 terminate = True
 
         if self.terminate_by == 'CHI_SQUARED':
-            terminate = self._perform_chi_squared(X, responsibilities, self.chi_squared_p_value)
+            terminate = not self._perform_chi_squared(X, responsibilities, self.chi_squared_p_value)
 
         try:
             samples_in_clone_0 = samples[assignments == 0]
