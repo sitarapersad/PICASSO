@@ -28,7 +28,7 @@ class Picasso:
                  terminate_by='probability',
                  assignment_confidence_threshold=0.75,
                  assignment_confidence_proportion=0.8,
-                 chi_squared_p_value=0.05):
+                 bic_penalty_strength=1.0,):
         """
         Initialize the PICASSO model.
         :param character_matrix: (pd.DataFrame) An integer matrix where rows are samples and columns are features.
@@ -48,7 +48,8 @@ class Picasso:
         assert 0 <= assignment_confidence_proportion <= 1, 'assignment_confidence_proportion must be between 0 and 1'
         self.assignment_confidence_threshold = assignment_confidence_threshold
         self.assignment_confidence_proportion = assignment_confidence_proportion
-        self.chi_squared_p_value = chi_squared_p_value
+        self.bic_penalty_strength = bic_penalty_strength
+
         assert isinstance(character_matrix, pd.DataFrame), 'character_matrix must be a pandas DataFrame'
         # Convert character matrix to integer values
         try:
@@ -60,7 +61,7 @@ class Picasso:
         assert isinstance(max_depth, int) or max_depth is None, 'max_depth must be an integer or None'
         assert isinstance(min_clone_size, int) or min_clone_size is None, 'min_clone_size must be an integer or None'
         terminate_by = terminate_by.upper()
-        assert terminate_by in ['PROBABILITY', 'BIC', 'CHI_SQUARED'], 'terminate_by must be either "probability" or "BIC"'
+        assert terminate_by in ['PROBABILITY', 'BIC'], 'terminate_by must be either "probability" or "BIC"'
 
         self.character_matrix = character_matrix
         self.min_depth = min_depth if min_depth is not None else 0
@@ -225,7 +226,7 @@ class Picasso:
                 else:
                     distributions = [Categorical() for _ in range(n_clusters)]
                 model = GeneralMixtureModel(distributions, verbose=False).fit(X)
-                bic_score = self._get_BIC_score(model, X)
+                bic_score = self._get_BIC_score(model, X, self.bic_penalty_strength)
                 assert not np.isinf(bic_score), f'BIC score is {bic_score}.'
                 if n_clusters > 1:
                     log.debug(f'\t -Trial {n_trials + 1}: BIC = {bic_score}')
@@ -251,7 +252,7 @@ class Picasso:
         return best_model, best_bic
 
     @staticmethod
-    def _get_BIC_score(model, X):
+    def _get_BIC_score(model, X, bic_penalty_strength=1.0):
         """
         Compute BIC score for the model.  BIC score should be as low as possible. A more negative log prob translates
         roughly to a higher BIC score, and vice versa. We ideally want the most positive log prob we can get.
@@ -264,7 +265,7 @@ class Picasso:
         n_clusters = len(model.distributions)
         n_params = params_per_cluster * n_clusters + n_clusters - 1
         logprob = model.log_probability(X).sum()
-        bic_score = -2 * logprob + n_params * np.log(X.shape[0])
+        bic_score = -2 * logprob + bic_penalty_strength*(n_params * np.log(X.shape[0]))
 
         return bic_score
 
